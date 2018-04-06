@@ -25,6 +25,12 @@ import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+
 public class Robot extends IterativeRobot {
 
 	public static PowerDistributionPanel pdp;
@@ -50,15 +56,24 @@ public class Robot extends IterativeRobot {
 	private static MecanumDrive drive;
 	private SetupData setupData;
 	private Diagnostics da;
+	private BufferedReader buffRead;
 	private double p, d, i, f;
 	public boolean xbox = false;
 	public boolean scott = false; //for axis 4 manual toggle
 	private int ccCount, lastTime;
-	
+	private ArrayList<Double> right_velocity, left_velocity, heading;
+	private String csvFile;
 	public final static boolean robotOne = false;
 
 	@Override
 	public void robotInit() {
+		right_velocity = new ArrayList<Double>();
+		left_velocity = new ArrayList<Double>();
+		heading = new ArrayList<Double>();
+		
+		csvFile = "";
+		
+		buffRead = null;
 		ccCount = 0;
 		lastTime = 0;
 		lastDistanceFR = 0.0;
@@ -150,6 +165,11 @@ public class Robot extends IterativeRobot {
 
 	@Override
 	public void autonomousInit() {
+		// 
+		setAutoArrays(heading, "/media/sda1/testNewAuto/csvTest.csv");
+		setAutoArrays(left_velocity, "/media/sda1/testNewAuto/csvTest1.csv");
+		setAutoArrays(right_velocity, "/media/sda1/testNewAuto/csvTest2.csv");
+
 		imu.zeroHeading();
 		autoIndex = 0;
 		ccCount = 0;
@@ -187,6 +207,7 @@ public class Robot extends IterativeRobot {
 
 	@Override
 	public void autonomousPeriodic() {
+		
 		//driveTrain.setPIDF(0, 0, 0, 0.4269);
 		//Scheduler.getInstance().run();
 		//intake.updateRotate();
@@ -214,27 +235,31 @@ public class Robot extends IterativeRobot {
 		}
 		
 		*/
-		FL_dist = Constants.INCH_PER_TICK*frontLeft.getSelectedSensorPosition(0);
-		FR_dist = Constants.INCH_PER_TICK*frontRight.getSelectedSensorPosition(0);
-		RL_dist = Constants.INCH_PER_TICK*rearLeft.getSelectedSensorPosition(0);
-		RR_dist = Constants.INCH_PER_TICK*rearRight.getSelectedSensorPosition(0);
-		desiredHeading = AutoConstants.global_heading[autoIndex];
+		//FL_dist = Constants.INCH_PER_TICK*frontLeft.getSelectedSensorPosition(0);
+		//FR_dist = Constants.INCH_PER_TICK*frontRight.getSelectedSensorPosition(0);
+		//RL_dist = Constants.INCH_PER_TICK*rearLeft.getSelectedSensorPosition(0);
+		//RR_dist = Constants.INCH_PER_TICK*rearRight.getSelectedSensorPosition(0);
+		desiredHeading = heading.get(autoIndex);
 		//desiredHeading = 0.0;
 		//double conversionFactor = 156.0494058201553;
-		zRotation = 0.06*(desiredHeading*(180.0/Math.PI) - imu.getHeading()); //TODO: Find desiredHeading and num.
+		zRotation = 0.02*(desiredHeading*(180.0/Math.PI) - imu.getHeadingRelative()); //TODO: Find desiredHeading and num.
 		//zRotation =0;
-		SmartDashboard.putNumber("Velocity:", frontRight.getSelectedSensorVelocity(0));
-		SmartDashboard.putNumber("IMU", imu.getHeading());
-		SmartDashboard.putNumber("Heading Error", (desiredHeading*(180.0/Math.PI) - imu.getHeading()));
+		//SmartDashboard.putNumber("Velocity:", frontRight.getSelectedSensorVelocity(0));
+		//SmartDashboard.putNumber("IMU", imu.getHeading());
+		//SmartDashboard.putNumber("Heading Error", (desiredHeading*(180.0/Math.PI) - imu.getHeading()));
 		//System.out.println(imu.getHeadingRelative());
-		SmartDashboard.putNumber("zRotation", zRotation);
-		System.out.println(lastAngle + "      " + imu.getHeading() + "       "  + lastTime);
-		if(autoIndex < 412) {
-		
-			//drive.driveCartesian(0, ((AutoConstants.left_velocity[autoIndex] + AutoConstants.right_velocity[autoIndex])/15), zRotation);
+		//SmartDashboard.putNumber("zRotation", zRotation);
+		//System.out.println(lastAngle + "      " + imu.getHeading() + "       "  + lastTime);
+		System.out.println("autoIndex: " + autoIndex);
+		if(autoIndex < heading.size()) {
+			drive.driveCartesian(0, ((left_velocity.get(autoIndex) + right_velocity.get(autoIndex))/15), zRotation);
+			
+			//Just go in some circles.
 			//drive.driveCartesian(0, 0, zRotation);
 		}
-		drive.driveCartesian(0, 0, 1);
+		/* FOR TUNING THE AUTO SEQUENCE
+		 * drive.driveCartesian(0, 0, 1);
+		 */
 		
 		/*
 		 * SmartDashboard.putNumber("Difference", imu.getHeading() - prev);
@@ -255,6 +280,7 @@ public class Robot extends IterativeRobot {
 			countNow = true;
 		}
 		*/
+		/*
 		if(imu.getHeading() / 360.0 >= 10 && !countNow) {
 			lastDistanceRR = RR_dist;
 			lastDistanceFL = FL_dist;
@@ -265,14 +291,15 @@ public class Robot extends IterativeRobot {
 			SmartDashboard.putNumber("FrontRight DIST", lastDistanceFR);
 			SmartDashboard.putNumber("rearLeft DIST", lastDistanceRR);
 			SmartDashboard.putNumber("rearRight DIST", lastDistanceRR);
-			System.out.println(lastDistanceFR + "		" + lastDistanceFL + "		" + lastDistanceRR + "		" + lastDistanceRL);
+			//System.out.println(lastDistanceFR + "		" + lastDistanceFL + "		" + lastDistanceRR + "		" + lastDistanceRL);
 			lastTime = ccCount;
 			lastAngle = imu.getHeading();
-			drive.driveCartesian(0, 0, 0);
+			//drive.driveCartesian(0, 0, 0);
 			countNow = true;
 		}
 		ccCount++;
-		//autoIndex++;
+		*/
+		autoIndex++;
 	}
 
 	@Override
@@ -320,5 +347,19 @@ public class Robot extends IterativeRobot {
 		talon.config_kI(0, i, TIMEOUT);
 		talon.config_kD(0, d, TIMEOUT);
 		talon.config_kF(0, f, TIMEOUT);
+	}
+	public void setAutoArrays(ArrayList<Double> a, String location) {
+		a.clear();
+		csvFile = location;
+		String line = "";
+			try (BufferedReader buffRead = new BufferedReader(new FileReader(csvFile))) {
+				while((line = buffRead.readLine()) != null) {
+					//System.out.println(line);
+					a.add(Double.parseDouble(line));
+					line = "";
+				}
+			} catch(IOException e) {
+				e.printStackTrace();
+		}	
 	}
 }

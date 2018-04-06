@@ -1,6 +1,13 @@
 package org.usfirst.frc.team1559.robot;
-
+import java.util.ArrayList;
 public interface AutoConstants {
+	
+	
+	
+	
+	
+	
+	/*
 		double[] right_velocity = {
 				0.007454, 
 				0.009185, 
@@ -1238,4 +1245,5 @@ public interface AutoConstants {
 				0.00247,
 				0
 		};
+		*/
 }
