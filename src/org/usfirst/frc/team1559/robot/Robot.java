@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class Robot extends IterativeRobot {
 
@@ -61,14 +62,17 @@ public class Robot extends IterativeRobot {
 	public boolean xbox = false;
 	public boolean scott = false; //for axis 4 manual toggle
 	private int ccCount, lastTime;
-	private ArrayList<Double> right_velocity, left_velocity, heading;
+	
+	private ArrayList<Double> velocity, heading;
+	private ArrayList<String> commands;
 	private String csvFile;
+	
+	
 	public final static boolean robotOne = false;
 
 	@Override
 	public void robotInit() {
-		right_velocity = new ArrayList<Double>();
-		left_velocity = new ArrayList<Double>();
+		velocity = new ArrayList<Double>();
 		heading = new ArrayList<Double>();
 		
 		csvFile = "";
@@ -166,9 +170,7 @@ public class Robot extends IterativeRobot {
 	@Override
 	public void autonomousInit() {
 		// 
-		setAutoArrays(heading, "/media/sda1/testNewAuto/csvTest.csv");
-		setAutoArrays(left_velocity, "/media/sda1/testNewAuto/csvTest1.csv");
-		setAutoArrays(right_velocity, "/media/sda1/testNewAuto/csvTest2.csv");
+		setAutoArrays("/media/sda1/testNewAuto/LLL3/LLL");
 
 		imu.zeroHeading();
 		autoIndex = 0;
@@ -252,10 +254,10 @@ public class Robot extends IterativeRobot {
 		//System.out.println(lastAngle + "      " + imu.getHeading() + "       "  + lastTime);
 		System.out.println("autoIndex: " + autoIndex);
 		if(autoIndex < heading.size()) {
-			drive.driveCartesian(0, ((left_velocity.get(autoIndex) + right_velocity.get(autoIndex))/15), zRotation);
+			//drive.driveCartesian(0, ((left_velocity.get(autoIndex) + right_velocity.get(autoIndex))/15), zRotation);
 			
-			//Just go in some circles.
-			//drive.driveCartesian(0, 0, zRotation);
+			drive.driveCartesian(0, ((velocity.get(autoIndex))/7.5), zRotation);
+			
 		}
 		/* FOR TUNING THE AUTO SEQUENCE
 		 * drive.driveCartesian(0, 0, 1);
@@ -348,15 +350,17 @@ public class Robot extends IterativeRobot {
 		talon.config_kD(0, d, TIMEOUT);
 		talon.config_kF(0, f, TIMEOUT);
 	}
-	public void setAutoArrays(ArrayList<Double> a, String location) {
-		a.clear();
+	public void setAutoArrays(String location) {
+		String[] record = new String[2];
+		
 		csvFile = location;
 		String line = "";
-			try (BufferedReader buffRead = new BufferedReader(new FileReader(csvFile))) {
-				while((line = buffRead.readLine()) != null) {
-					//System.out.println(line);
-					a.add(Double.parseDouble(line));
-					line = "";
+			try (Scanner scan = new Scanner(new FileReader(csvFile))) {
+				while(scan.hasNext()) {
+					record = scan.nextLine().split(",");
+					velocity.add(Double.parseDouble(record[0]));
+					heading.add(Double.parseDouble(record[1]));
+					//commands.add(record[2]);
 				}
 			} catch(IOException e) {
 				e.printStackTrace();
